@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "53WSCbR90IYGXPpkLCyz4/CiGIA=",
+			"path": "github.com/ardaxi/go-gitlab",
+			"revision": "e6c11edf9a78fdfa4e0fbbc8263e325b5ae50100",
+			"revisionTime": "2017-05-18T07:32:22Z"
+		},
+		{
+			"checksumSHA1": "dz3Of7nwquNfShyXNkLSA36RrLo=",
+			"path": "github.com/google/go-querystring/query",
+			"revision": "6bb77fe6f42b85397288d4f6f67ac72f8f400ee7",
+			"revisionTime": "2016-02-18T00:51:18Z"
+		}
+	],
+	"rootPath": "github.com/ardaxi/gitscan"
+}
