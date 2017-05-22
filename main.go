@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"crypto/tls"
+	"encoding/base64"
 	"flag"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 
 	"github.com/ardaxi/go-gitlab"
@@ -22,7 +27,10 @@ func main() {
 
 	_ = signatures
 
-	git := gitlab.NewClient(nil, *token)
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+	git := gitlab.NewClient(client, *token)
 	err = git.SetBaseURL(*baseurl)
 	handleError(err, "set base URL")
 
@@ -40,11 +48,11 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to list all projects: %s", err)
 			log.Println("Falling back to checking user projects")
-			projects, _, err = git.Projects.ListProjects(nil)
+			projects, _, err = git.Projects.ListVisibleProjects(nil)
 		}
 	} else {
 		log.Println("User is not admin, checking user projects")
-		projects, _, err = git.Projects.ListProjects(nil)
+		projects, _, err = git.Projects.ListVisibleProjects(nil)
 	}
 	handleError(err, "get projects")
 
@@ -63,9 +71,36 @@ func main() {
 			URL:  project.WebURL,
 		}
 
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+	outer:
 		for _, v := range tree {
+			select {
+			case sign := <-c:
+				log.Printf("Received signal: %s", sign)
+				break outer
+			}
 			if v.Type != "tree" {
 				count, results := CheckPath(signatures, v.Path)
+				projectResult.Count += count
+				projectResult.CheckResults = append(projectResult.CheckResults, results...)
+
+				file, _, err := git.RepositoryFiles.GetFile(project.ID, &gitlab.GetFileOptions{
+					FilePath: gitlab.String(v.Path),
+					Ref:      gitlab.String("master"),
+				})
+				if err != nil {
+					continue
+				}
+				if file.Size > 10000000 {
+					continue
+				}
+
+				contents, err := base64.StdEncoding.DecodeString(file.Content)
+				if err != nil {
+					continue
+				}
+				count, results = CheckShannon(v.Path, bytes.NewReader(contents))
 				projectResult.Count += count
 				projectResult.CheckResults = append(projectResult.CheckResults, results...)
 			}

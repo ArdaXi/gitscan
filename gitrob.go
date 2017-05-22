@@ -87,8 +87,9 @@ func parsePart(part string) part {
 }
 
 type CheckResult struct {
-	Path      string
-	Signature *Signature
+	Path        string
+	Caption     string
+    Description string
 }
 
 func CheckPath(sigs []*Signature, filePath string) (int, []*CheckResult) {
@@ -106,13 +107,21 @@ func CheckPath(sigs []*Signature, filePath string) (int, []*CheckResult) {
 		}
 		if sig.Regex != nil {
 			if sig.Regex.MatchString(check) {
-				results = append(results, &CheckResult{Path: filePath, Signature: sig})
+				results = append(results, &CheckResult{
+					Path: filePath, 
+					Caption: sig.Caption,
+				    Description: sig.Description,
+				})
 				count++
 			}
 			continue
 		}
 		if strings.Contains(check, sig.Pattern) {
-			results = append(results, &CheckResult{Path: filePath, Signature: sig})
+			results = append(results, &CheckResult{
+				Path: filePath,
+				Caption: sig.Caption,
+				Description: sig.Description,
+			})
 			count++
 			continue
 		}

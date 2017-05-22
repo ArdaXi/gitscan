@@ -21,7 +21,7 @@ const index = `<html><head><title>GitScan Report</title></head><body><h1>GitScan
 </ul></body></html>`
 
 const project = `<html><head><title>{{.Name}} - GitScan Report</title></head><body><h1>{{.Name}} - GitScan Report</h1><ul>
-{{range .CheckResults}}<li><a href="{{$.URL}}/blob/master/{{.Path}}">{{.Path}}</a><br />{{.Signature.Caption}}{{with .Signature.Description}}<br />{{.}}{{end}}</li>{{end}}
+{{range .CheckResults}}<li><a href="{{$.URL}}/blob/master/{{.Path}}">{{.Path}}</a><br />{{.Caption}}{{with .Description}}<br />{{.}}{{end}}</li>{{end}}
 </ul></body></html>`
 
 func Render(data []*Result) (string, error) {

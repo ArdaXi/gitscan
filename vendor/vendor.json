@@ -3,10 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "53WSCbR90IYGXPpkLCyz4/CiGIA=",
+			"checksumSHA1": "7DmTO+XFLtObODJu4h030lCBpRU=",
 			"path": "github.com/ardaxi/go-gitlab",
-			"revision": "e6c11edf9a78fdfa4e0fbbc8263e325b5ae50100",
-			"revisionTime": "2017-05-18T07:32:22Z"
+			"revision": "42619c6466d585f48800a217c135928833456668",
+			"revisionTime": "2017-05-22T10:23:03Z",
+			"version": "visible-projects",
+			"versionExact": "visible-projects"
 		},
 		{
 			"checksumSHA1": "dz3Of7nwquNfShyXNkLSA36RrLo=",
