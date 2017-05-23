@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ardaxi/gitscan/checks"
 	"github.com/ardaxi/gitscan/providers"
 )
 
@@ -18,10 +19,8 @@ func main() {
 	flag.Parse()
 
 	log.Printf("Parsing signatures from %v", *signaturePath)
-	signatures, err := ParseSignatures(*signaturePath)
+	err := checks.ParseSignatures(*signaturePath)
 	handleError(err, "parse signatures")
-
-	_ = signatures
 
 	log.Printf("Logging into Gitlab at %s", *baseurl)
 	provider, err := providers.Providers["gitlab"](&providers.Options{
@@ -51,9 +50,10 @@ func main() {
 		}
 
 		for _, f := range files {
-			count, results := CheckPath(signatures, f.Path())
-			projectResult.Count += count
-			projectResult.CheckResults = append(projectResult.CheckResults, results...)
+			for _, check := range checks.Checks {
+				results := check(f)
+				projectResult.Results = append(projectResult.Results, results...)
+			}
 		}
 
 		allResults = append(allResults, projectResult)

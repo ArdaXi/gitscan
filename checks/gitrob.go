@@ -1,4 +1,4 @@
-package main
+package checks
 
 import (
 	"encoding/json"
@@ -7,7 +7,11 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/ardaxi/gitscan/providers"
 )
+
+var signatures []*Signature
 
 type part int
 
@@ -34,19 +38,18 @@ type Signature struct {
 	Description string
 }
 
-func ParseSignatures(path string) ([]*Signature, error) {
+func ParseSignatures(path string) error {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var sigs []GitrobSignature
 	err = json.Unmarshal(file, &sigs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var result []*Signature
 	for _, sig := range sigs {
 		signature := &Signature{
 			Part:        parsePart(sig.Part),
@@ -54,23 +57,23 @@ func ParseSignatures(path string) ([]*Signature, error) {
 			Description: sig.Description,
 		}
 		if signature.Part == unknownPart {
-			return nil, fmt.Errorf("Unknown part: %v", sig.Part)
+			return fmt.Errorf("Unknown part: %v", sig.Part)
 		}
 		switch sig.Type {
 		case "regex":
 			re, err := regexp.Compile(sig.Pattern)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			signature.Regex = re
 		case "match":
 			signature.Pattern = sig.Pattern
 		default:
-			return nil, fmt.Errorf("Unknown type: %v", sig.Type)
+			return fmt.Errorf("Unknown type: %v", sig.Type)
 		}
-		result = append(result, signature)
+		signatures = append(signatures, signature)
 	}
-	return result, nil
+	return nil
 }
 
 func parsePart(part string) part {
@@ -86,15 +89,10 @@ func parsePart(part string) part {
 	}
 }
 
-type CheckResult struct {
-	Path      string
-	Signature *Signature
-}
-
-func CheckPath(sigs []*Signature, filePath string) (int, []*CheckResult) {
-	var results []*CheckResult
-	count := 0
-	for _, sig := range sigs {
+func GitrobCheck(file providers.File) []*Result {
+	var results []*Result
+	filePath := file.Path()
+	for _, sig := range signatures {
 		var check string
 		switch sig.Part {
 		case extensionPart:
@@ -106,16 +104,18 @@ func CheckPath(sigs []*Signature, filePath string) (int, []*CheckResult) {
 		}
 		if sig.Regex != nil {
 			if sig.Regex.MatchString(check) {
-				results = append(results, &CheckResult{Path: filePath, Signature: sig})
-				count++
+				results = append(results, &Result{File: file, Caption: sig.Caption, Description: sig.Description})
 			}
 			continue
 		}
 		if strings.Contains(check, sig.Pattern) {
-			results = append(results, &CheckResult{Path: filePath, Signature: sig})
-			count++
+			results = append(results, &Result{File: file, Caption: sig.Caption, Description: sig.Description})
 			continue
 		}
 	}
-	return count, results
+	return results
+}
+
+func init() {
+	Checks = append(Checks, GitrobCheck)
 }
