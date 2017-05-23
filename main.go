@@ -6,12 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ardaxi/go-gitlab"
+	"github.com/ardaxi/gitscan/providers"
 )
 
 var token = flag.String("token", "", "GitLab API token")
 var baseurl = flag.String("url", "https://gitlab.com/api/v3/", "GitLab base URL")
 var signaturePath = flag.String("signatures", "signatures.json", "Path to signatures file")
+var limit = flag.Int("limit", -1, "Amount of repositories to scan")
 
 func main() {
 	flag.Parse()
@@ -22,56 +23,44 @@ func main() {
 
 	_ = signatures
 
-	git := gitlab.NewClient(nil, *token)
-	err = git.SetBaseURL(*baseurl)
-	handleError(err, "set base URL")
-
-	log.Printf("Logging in to GitLab at %v", *baseurl)
-	user, _, err := git.Users.CurrentUser()
-	handleError(err, "get current user")
-
-	log.Printf("Logged in as %s", user.Username)
-
-	var projects []*gitlab.Project
-
-	if user.IsAdmin {
-		log.Println("User is admin, checking all projects")
-		projects, _, err = git.Projects.ListAllProjects(nil)
-		if err != nil {
-			log.Printf("Failed to list all projects: %s", err)
-			log.Println("Falling back to checking user projects")
-			projects, _, err = git.Projects.ListProjects(nil)
-		}
-	} else {
-		log.Println("User is not admin, checking user projects")
-		projects, _, err = git.Projects.ListProjects(nil)
-	}
-	handleError(err, "get projects")
+	log.Printf("Logging into Gitlab at %s", *baseurl)
+	provider, err := providers.Providers["gitlab"](&providers.Options{
+		Token: *token,
+		URL:   *baseurl,
+	})
+	handleError(err, "start provider")
 
 	var allResults []*Result
 
-	for _, project := range projects {
-		log.Printf("Scanning project %v", project.Name)
-		tree, _, err := git.Repositories.ListTree(project.ID, &gitlab.ListTreeOptions{Recursive: gitlab.Bool(true)})
+	projects := provider.ListAllProjects()
+	for project := range projects {
+		log.Printf("Scanning project %v", project.Name())
+		files, err := project.Files()
 		if err != nil {
 			log.Printf("Couldn't retrieve tree for %s: %s", project.Name, err)
 			continue
 		}
 
-		projectResult := &Result{
-			Name: project.Name,
-			URL:  project.WebURL,
+		if *limit != -1 {
+			*limit--
 		}
 
-		for _, v := range tree {
-			if v.Type != "tree" {
-				count, results := CheckPath(signatures, v.Path)
-				projectResult.Count += count
-				projectResult.CheckResults = append(projectResult.CheckResults, results...)
-			}
+		projectResult := &Result{
+			Name: project.Name(),
+			URL:  project.URL(),
+		}
+
+		for _, f := range files {
+			count, results := CheckPath(signatures, f.Path())
+			projectResult.Count += count
+			projectResult.CheckResults = append(projectResult.CheckResults, results...)
 		}
 
 		allResults = append(allResults, projectResult)
+
+		if *limit == 0 {
+			break
+		}
 	}
 
 	indexPath, err := Render(allResults)

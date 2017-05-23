@@ -1,0 +1,26 @@
+package providers
+
+import "io"
+
+type Options struct {
+	Token string
+	URL   string
+}
+
+type Provider interface {
+	ListAllProjects() <-chan Project
+}
+
+type Project interface {
+	Files() ([]File, error)
+	Name() string
+	URL() string
+}
+
+type File interface {
+	Path() string
+	Size() (int, error)
+	Contents() (io.Reader, error)
+}
+
+var Providers map[string]func(*Options) (Provider, error) = map[string]func(*Options) (Provider, error){}
