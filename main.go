@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ardaxi/gitscan/checks"
 	"github.com/ardaxi/gitscan/providers"
@@ -30,6 +32,14 @@ func main() {
 	handleError(err, "start provider")
 
 	var allResults []*Result
+
+	folder := fmt.Sprintf("result-%s", time.Now().Format("20060102-1504"))
+	_ = os.Mkdir(folder, os.ModePerm)
+	indexPath := fmt.Sprintf("%s/index.html", folder)
+
+	wd, err := os.Getwd()
+	handleError(err, "get current directory")
+	log.Printf("Rendering results to %s", filepath.Join(wd, indexPath))
 
 	projects := provider.ListAllProjects()
 	for project := range projects {
@@ -58,16 +68,16 @@ func main() {
 
 		allResults = append(allResults, projectResult)
 
+		Render(folder, allResults)
+
 		if *limit == 0 {
 			break
 		}
 	}
 
-	indexPath, err := Render(allResults)
+	err = Render(folder, allResults)
 	handleError(err, "render results")
 
-	wd, err := os.Getwd()
-	handleError(err, "get current directory")
 	log.Printf("Rendered results to %s", filepath.Join(wd, indexPath))
 }
 

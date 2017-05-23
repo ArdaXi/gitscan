@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/ardaxi/gitscan/checks"
 )
@@ -25,9 +24,7 @@ const project = `<html><head><title>{{.Name}} - GitScan Report</title></head><bo
 {{range .Results}}<li><a href="{{$.URL}}/blob/master/{{.File.Path}}">{{.File.Path}}</a><br />{{.Caption}}{{with .Description}}<br />{{.}}{{end}}</li>{{end}}
 </ul></body></html>`
 
-func Render(data []*Result) (string, error) {
-	folder := fmt.Sprintf("result-%s", time.Now().Format("20060102-1504"))
-	_ = os.Mkdir(folder, os.ModePerm)
+func Render(folder string, data []*Result) error {
 	indexTmpl := template.Must(template.New("index").Parse(index))
 	projectTmpl := template.Must(template.New("project").Parse(project))
 	for _, res := range data {
@@ -37,20 +34,20 @@ func Render(data []*Result) (string, error) {
 		res.Filename = fmt.Sprintf("%s.html", strings.ToLower(res.Name))
 		f, err := os.Create(fmt.Sprintf("%s/%s", folder, res.Filename))
 		if err != nil {
-			return "", err
+			return err
 		}
 		defer f.Close()
 
 		err = projectTmpl.Execute(f, res)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 	indexPath := fmt.Sprintf("%s/index.html", folder)
 	f, err := os.Create(indexPath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer f.Close()
-	return indexPath, indexTmpl.Execute(f, data)
+	return indexTmpl.Execute(f, data)
 }
