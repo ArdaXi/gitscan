@@ -36,7 +36,7 @@ func main() {
 		log.Printf("Scanning project %v", project.Name())
 		files, err := project.Files()
 		if err != nil {
-			log.Printf("Couldn't retrieve tree for %s: %s", project.Name, err)
+			log.Printf("Couldn't retrieve tree for %s: %s", project.Name(), err)
 			continue
 		}
 
