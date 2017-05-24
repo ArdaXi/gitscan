@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/ardaxi/gitscan/checks"
@@ -31,8 +32,6 @@ func main() {
 	})
 	handleError(err, "start provider")
 
-	var allResults []*Result
-
 	folder := fmt.Sprintf("result-%s", time.Now().Format("20060102-1504"))
 	_ = os.Mkdir(folder, os.ModePerm)
 	indexPath := fmt.Sprintf("%s/index.html", folder)
@@ -40,6 +39,9 @@ func main() {
 	wd, err := os.Getwd()
 	handleError(err, "get current directory")
 	log.Printf("Rendering results to %s", filepath.Join(wd, indexPath))
+
+	projectResults := make(chan *ProjectResult)
+	go GoRender(folder, projectResults)
 
 	projects := provider.ListAllProjects()
 	for project := range projects {
@@ -54,29 +56,28 @@ func main() {
 			*limit--
 		}
 
-		projectResult := &Result{
-			Name: project.Name(),
-			URL:  project.URL(),
+		projectResult := &ProjectResult{
+			Name:    project.Name(),
+			URL:     project.URL(),
+			Results: make(chan *checks.Result),
 		}
 
 		for _, f := range files {
+			var wg sync.WaitGroup
 			for _, check := range checks.Checks {
-				results := check(f)
-				projectResult.Results = append(projectResult.Results, results...)
+				wg.Add(1)
+				go check(f, projectResult.Results, wg.Done)
 			}
+			wg.Wait()
 		}
-
-		allResults = append(allResults, projectResult)
-
-		Render(folder, allResults)
+		close(projectResult.Results)
 
 		if *limit == 0 {
 			break
 		}
 	}
 
-	err = Render(folder, allResults)
-	handleError(err, "render results")
+	close(projectResults)
 
 	log.Printf("Rendered results to %s", filepath.Join(wd, indexPath))
 }

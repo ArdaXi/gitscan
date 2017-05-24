@@ -89,8 +89,7 @@ func parsePart(part string) part {
 	}
 }
 
-func GitrobCheck(file providers.File) []*Result {
-	var results []*Result
+func GitrobCheck(file providers.File, c chan<- *Result, done func()) {
 	filePath := file.Path()
 	for _, sig := range signatures {
 		var check string
@@ -104,16 +103,16 @@ func GitrobCheck(file providers.File) []*Result {
 		}
 		if sig.Regex != nil {
 			if sig.Regex.MatchString(check) {
-				results = append(results, &Result{File: file, Caption: sig.Caption, Description: sig.Description})
+				c <- &Result{File: file, Caption: sig.Caption, Description: sig.Description}
 			}
 			continue
 		}
 		if strings.Contains(check, sig.Pattern) {
-			results = append(results, &Result{File: file, Caption: sig.Caption, Description: sig.Description})
+			c <- &Result{File: file, Caption: sig.Caption, Description: sig.Description}
 			continue
 		}
 	}
-	return results
+	done()
 }
 
 func init() {

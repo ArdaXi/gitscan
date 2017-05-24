@@ -2,8 +2,10 @@ package providers
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"io"
+	"net/http"
 
 	"github.com/ardaxi/go-gitlab"
 )
@@ -18,7 +20,10 @@ type gitlabProvider struct {
 }
 
 func newGitlab(opts *Options) (Provider, error) {
-	client := gitlab.NewClient(nil, opts.Token)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := gitlab.NewClient(&http.Client{Transport: tr}, opts.Token)
 	if opts.URL != "" {
 		if err := client.SetBaseURL(opts.URL); err != nil {
 			return nil, err

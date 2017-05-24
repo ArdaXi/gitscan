@@ -9,17 +9,16 @@ import (
 	"github.com/ardaxi/gitscan/providers"
 )
 
-func ShannonCheck(file providers.File) []*Result {
+func ShannonCheck(file providers.File, c chan<- *Result, done func()) {
+	defer done()
 	size, err := file.Size()
 	if err != nil || size > 1000000 {
-		return nil
+		return
 	}
-
-	var results []*Result
 
 	contents, err := file.Contents()
 	if err != nil {
-		return nil
+		return
 	}
 
 	scanner := bufio.NewScanner(contents)
@@ -28,15 +27,15 @@ func ShannonCheck(file providers.File) []*Result {
 		text := scanner.Text()
 		entropy := getEntropy(text)
 		if entropy > 4.5 {
-			results = append(results, &Result{
+			c <- &Result{
 				File:        file,
 				Caption:     fmt.Sprintf("High entropy string: %f", entropy),
 				Description: text,
-			})
+			}
 		}
 	}
 
-	return results
+	return
 }
 
 func getEntropy(data string) float64 {

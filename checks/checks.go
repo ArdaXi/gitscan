@@ -8,6 +8,6 @@ type Result struct {
 	Description string
 }
 
-type Check func(providers.File) []*Result
+type Check func(providers.File, chan<- *Result, func())
 
 var Checks []Check
