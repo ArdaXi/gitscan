@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ardaxi/gitscan/checks"
+	"github.com/ardaxi/gitscan/database"
 	"github.com/ardaxi/gitscan/providers"
 )
 
@@ -16,12 +17,17 @@ var token = flag.String("token", "", "GitLab API token")
 var baseurl = flag.String("url", "https://gitlab.com/api/v3/", "GitLab base URL")
 var signaturePath = flag.String("signatures", "signatures.json", "Path to signatures file")
 var limit = flag.Int("limit", -1, "Amount of repositories to scan")
+var dsn = flag.String("dsn", "dname=scan", "PostgreSQL DSN")
 
 func main() {
 	flag.Parse()
 
+	log.Println("Connecting to database")
+	db, err := database.Connect(*dsn)
+	handleError(err, "connect to database")
+
 	log.Printf("Parsing signatures from %v", *signaturePath)
-	err := checks.ParseSignatures(*signaturePath)
+	err = checks.ParseSignatures(*signaturePath)
 	handleError(err, "parse signatures")
 
 	log.Printf("Logging into Gitlab at %s", *baseurl)
@@ -43,6 +49,12 @@ func main() {
 
 	projects := provider.ListAllProjects()
 	for project := range projects {
+		log.Printf("Looking up project %v in DB", project.Name())
+		commitID := project.LastCommit()
+		lastScanned, err := db.GetLastScanned(project.ID())
+		if err != nil {
+			log.Printf("Couldn't find or create %s in DB.", project.Name())
+		}
 		log.Printf("Scanning project %v", project.Name())
 		files, err := project.Files()
 		if err != nil {
