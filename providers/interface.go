@@ -15,6 +15,8 @@ type Project interface {
 	Files() ([]File, error)
 	Name() string
 	URL() string
+	ID() int
+	LastCommit() (string, error)
 }
 
 type File interface {

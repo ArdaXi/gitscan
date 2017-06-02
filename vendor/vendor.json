@@ -15,6 +15,18 @@
 			"path": "github.com/google/go-querystring/query",
 			"revision": "6bb77fe6f42b85397288d4f6f67ac72f8f400ee7",
 			"revisionTime": "2016-02-18T00:51:18Z"
+		},
+		{
+			"checksumSHA1": "SEZulQ/Gm4f6P6/c3waZjXxvl0g=",
+			"path": "github.com/jmoiron/sqlx",
+			"revision": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f",
+			"revisionTime": "2017-04-30T19:46:03Z"
+		},
+		{
+			"checksumSHA1": "xXjxKqs3ECyWO5zjIVb2qgj9rcU=",
+			"path": "github.com/jmoiron/sqlx/reflectx",
+			"revision": "d9bd385d68c068f1fabb5057e3dedcbcbb039d0f",
+			"revisionTime": "2017-04-30T19:46:03Z"
 		}
 	],
 	"rootPath": "github.com/ardaxi/gitscan"

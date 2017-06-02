@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
+	"log"
 
 	"github.com/ardaxi/go-gitlab"
 )
@@ -24,10 +25,13 @@ func newGitlab(opts *Options) (Provider, error) {
 			return nil, err
 		}
 	}
+
 	user, _, err := client.Users.CurrentUser()
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Logged in to GitLab as: %s", user.Username)
 
 	return &gitlabProvider{client: client, user: user}, nil
 }
@@ -50,6 +54,7 @@ func (g *gitlabProvider) ListAllProjects() <-chan Project {
 					id:       p.ID,
 					webURL:   p.WebURL,
 					name:     p.Name,
+					branch:   p.DefaultBranch,
 				}
 			}
 			if resp.NextPage == 0 {
@@ -66,6 +71,11 @@ type gitlabProject struct {
 	id       int
 	webURL   string
 	name     string
+	branch   string
+}
+
+func (p *gitlabProject) ID() int {
+	return p.id
 }
 
 func (p *gitlabProject) Name() string {
@@ -74,6 +84,15 @@ func (p *gitlabProject) Name() string {
 
 func (p *gitlabProject) URL() string {
 	return p.webURL
+}
+
+func (p *gitlabProject) LastCommit() (string, error) {
+	branch, _, err := p.provider.client.Branches.GetBranch(p.id, p.branch)
+	if err != nil {
+		return "", err
+	}
+
+	return branch.Commit.ID, nil
 }
 
 func (p *gitlabProject) Files() ([]File, error) {
