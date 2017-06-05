@@ -14,6 +14,7 @@ var baseurl = flag.String("url", "https://gitlab.com/api/v3/", "GitLab base URL"
 var signaturePath = flag.String("signatures", "signatures.json", "Path to signatures file")
 var limit = flag.Int("limit", -1, "Amount of repositories to scan")
 var dsn = flag.String("dsn", "dname=scan", "PostgreSQL DSN")
+var server = flag.Bool("server", false, "Run GitScan server")
 
 func main() {
 	flag.Parse()
@@ -24,9 +25,10 @@ func main() {
 
 	_ = db
 
-	log.Printf("Parsing signatures from %v", *signaturePath)
-	err = checks.ParseSignatures(*signaturePath)
-	handleError(err, "parse signatures")
+	if *server {
+		serve(db, *baseurl)
+		return
+	}
 
 	log.Printf("Logging into Gitlab at %s", *baseurl)
 	provider, err := providers.Providers["gitlab"](&providers.Options{
@@ -34,6 +36,10 @@ func main() {
 		URL:   *baseurl,
 	})
 	handleError(err, "start provider")
+
+	log.Printf("Parsing signatures from %v", *signaturePath)
+	err = checks.ParseSignatures(*signaturePath)
+	handleError(err, "parse signatures")
 
 	projects := provider.ListAllProjects()
 	for project := range projects {

@@ -9,6 +9,8 @@ type Options struct {
 
 type Provider interface {
 	ListAllProjects() <-chan Project
+	GetProject(int) (Project, error)
+	Username() string
 }
 
 type Project interface {

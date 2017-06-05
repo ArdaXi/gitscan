@@ -62,8 +62,28 @@ func (g *gitlabProvider) ListAllProjects() <-chan Project {
 			}
 			opts.Page = resp.NextPage
 		}
+		close(c)
 	}(c, opts)
 	return c
+}
+
+func (g *gitlabProvider) GetProject(id int) (Project, error) {
+	project, _, err := g.client.Projects.GetProject(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &gitlabProject{
+		provider: g,
+		id:       project.ID,
+		webURL:   project.WebURL,
+		name:     project.Name,
+		branch:   project.DefaultBranch,
+	}, nil
+}
+
+func (g *gitlabProvider) Username() string {
+	return g.user.Username
 }
 
 type gitlabProject struct {
