@@ -5,6 +5,7 @@ import "io"
 type Options struct {
 	Token string
 	URL   string
+	Path  string
 }
 
 type Provider interface {
@@ -18,6 +19,7 @@ type Project interface {
 	Name() string
 	URL() string
 	ID() int
+	Path() string
 	LastCommit() (string, error)
 }
 

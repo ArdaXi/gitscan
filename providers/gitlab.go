@@ -79,6 +79,7 @@ func (g *gitlabProvider) GetProject(id int) (Project, error) {
 		webURL:   project.WebURL,
 		name:     project.Name,
 		branch:   project.DefaultBranch,
+		path:     project.PathWithNamespace,
 	}, nil
 }
 
@@ -92,6 +93,7 @@ type gitlabProject struct {
 	webURL   string
 	name     string
 	branch   string
+	path     string
 }
 
 func (p *gitlabProject) ID() int {
@@ -104,6 +106,10 @@ func (p *gitlabProject) Name() string {
 
 func (p *gitlabProject) URL() string {
 	return p.webURL
+}
+
+func (p *gitlabProject) Path() string {
+	return p.path
 }
 
 func (p *gitlabProject) LastCommit() (string, error) {
